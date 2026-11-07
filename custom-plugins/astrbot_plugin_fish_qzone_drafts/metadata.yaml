@@ -1,0 +1,8 @@
+name: astrbot_plugin_fish_qzone_drafts
+display_name: 大肥鱼空间灵感
+desc: 主人按需让大肥鱼联网找灵感、写三条待审核说说，审核通过后才发表。
+version: 1.2.3
+author: 本机定制
+astrbot_version: ">=4.29.4,<5"
+support_platforms:
+  - aiocqhttp

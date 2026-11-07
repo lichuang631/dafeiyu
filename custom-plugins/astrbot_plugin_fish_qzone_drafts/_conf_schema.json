@@ -1,0 +1,9 @@
+{
+  "owner_qq": {"type": "string", "description": "唯一审稿主人", "default": "100000001"},
+  "bot_qq": {"type": "string", "description": "大肥鱼账号，仅允许向该账号本人的动态投稿", "default": "100000002"},
+  "quota_fallback_normal": {"type": "bool", "description": "空友爱看额度用完后，主人过稿的图文照常发到普通 QQ 空间；不自动补投", "default": true},
+  "provider_id": {"type": "string", "description": "写草稿的模型，留空使用当前会话模型", "default": ""},
+  "search_queries": {"type": "list", "description": "纯文字模式的灵感搜索词", "default": ["猫咪 搞笑 日常", "摸鱼 吐槽 趣事", "可爱动物 贪吃 发呆"]},
+  "with_images": {"type": "bool", "description": "每条草稿带一张网上趣图，和正文一起审核发表", "default": true},
+  "image_queries": {"type": "list", "description": "联网寻找配图的主题，每次随机选三项；使用英文主题提升搜索相关性，正文仍为中文", "default": ["kitten yawning funny", "capybara bath", "dog silly sleeping", "hamster eating", "bird round sleeping", "seal animal sleeping"]}
+}

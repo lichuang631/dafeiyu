@@ -1,0 +1,8 @@
+name: astrbot_plugin_fish_hybrid_voice
+display_name: 大肥鱼本地语音与备用
+desc: 优先使用电脑上的训练声音，本地断开或失败时使用原有龙嫱音色。
+version: 1.0.1
+author: 本机定制
+astrbot_version: ">=4.29.4,<5"
+support_platforms:
+  - aiocqhttp

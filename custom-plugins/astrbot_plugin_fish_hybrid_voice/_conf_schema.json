@@ -1,0 +1,5 @@
+{
+  "provider_id": {"type": "string", "description": "接入的原有语音提供商", "default": "bailian_voice"},
+  "local_timeout": {"type": "int", "description": "本地合成最多等待秒数，失败后自动使用云端声音", "default": 30},
+  "cooldown_seconds": {"type": "int", "description": "本地失败后短暂停留在云端，随后自动重试本地", "default": 15}
+}

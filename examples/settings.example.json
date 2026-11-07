@@ -1,0 +1,14 @@
+{
+  "owner_qq": "100000001",
+  "bot_qq": "100000002",
+  "server_host": "203.0.113.10",
+  "server_user": "root",
+  "voice_user": "fishvoice",
+  "runtime_directory": "D:\\dafeiyu",
+  "chat_provider": "deepseek_2",
+  "tts_provider": "bailian_voice",
+  "cloud_voice": "longqiang_v2",
+  "tts_probability": 0.6,
+  "dual_output": false,
+  "note": "此文件是填写清单，不会自动覆盖 AstrBot 配置。密钥在本机面板填写。"
+}
