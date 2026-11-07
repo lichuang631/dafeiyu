@@ -8,7 +8,7 @@ import requests
 
 runtime = Path(__file__).resolve().parents[1]
 name = "astrbot_plugin_fish_singing"
-archive = runtime / "downloads" / f"{name}-1.0.0.zip"
+archive = runtime / "downloads" / f"{name}-1.0.2.zip"
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
     for file in ("main.py", "metadata.yaml", "_conf_schema.json"):
         bundle.write(runtime / "custom-plugins" / name / file, arcname=f"{name}/{file}")

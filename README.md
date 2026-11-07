@@ -11,6 +11,7 @@
 3. [云端与空间功能记录](docs/云端与空间功能记录.md)：迁移、内存掉线修复、图文草稿审核及空友投稿。
 4. [本地声音与降噪](docs/本地声音与降噪.md)：训练、试听、断网备用与自动恢复。
 5. [目录与恢复说明](docs/目录与恢复说明.md)：代码用途、还需自行准备的文件及恢复顺序。
+6. [唱歌加速与回传修复](docs/唱歌加速与回传修复.md)：GPU分离、模型复用、成品缓存、进度和超时。
 
 ## 已有能力
 
@@ -52,8 +53,11 @@ $env:QZONE_PLUGIN_DIR = 'D:\test-deps\astrbot_plugin_qzone_ultra'
 python -m unittest discover -s custom-plugins/astrbot_plugin_fish_hybrid_voice/tests -v
 python -m unittest discover -s custom-plugins/astrbot_plugin_fish_qzone_drafts/tests -v
 python -m unittest discover -s singing/tests -v
+python -m unittest discover -s custom-plugins/astrbot_plugin_fish_singing/tests -v
 ```
 
 测试覆盖本地/备用切换、断线恢复、超时、取消、主人审稿权限、重复发表保护、配图校验和无额度普通发表；不会向 QQ 或空间发送内容。
+
+唱歌插件更新至1.0.2，已修复发送进度后消息后置插件中断音频回传的问题，用户在真实QQ确认收到两段。相同60秒歌曲完整处理实测约44秒，模型复用约29秒，重复歌曲缓存本地查询约0.01秒，均不含QQ传输时间。
 
 代码与来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。从 GitHub 的 **Code → Download ZIP** 可下载完整资料包。

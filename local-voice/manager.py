@@ -45,8 +45,9 @@ def main():
     except OSError:
         print("本地语音管理器已经在运行。", flush=True)
         return
-    service = tunnel = None
+    service = tunnel = singing = None
     next_connection = next_service = 0
+    next_singing = 0
     connection_state = "尚未连接"
 
     def report(message):
@@ -56,6 +57,7 @@ def main():
     with (
         (LOGS / "service.log").open("a", encoding="utf-8") as service_log,
         (LOGS / "connection.log").open("a", encoding="utf-8") as connection_log,
+        (LOGS / "singing-engine.log").open("a", encoding="utf-8") as singing_log,
     ):
         try:
             while not stopped.exists():
@@ -78,6 +80,23 @@ def main():
                         env={**os.environ, "PYTHONUTF8": "1"},
                     )
                     next_service = now + 15
+                acceleration = ROOT.parent / "singing/acceleration.json"
+                enabled = False
+                if acceleration.exists():
+                    try:
+                        enabled = bool(json.loads(acceleration.read_text(encoding="utf-8")).get("enabled"))
+                    except (OSError, ValueError):
+                        pass
+                if enabled and (singing is None or singing.poll() is not None) and now >= next_singing:
+                    try:
+                        singing = subprocess.Popen(
+                            [str(ROOT.parent / "singing/.venv-gpu/Scripts/python.exe"), "-u", str(ROOT.parent / "singing/engine_service.py")],
+                            cwd=ROOT.parent / "singing", stdout=singing_log, stderr=subprocess.STDOUT,
+                            creationflags=subprocess.CREATE_NO_WINDOW, env={**os.environ, "PYTHONUTF8": "1"},
+                        )
+                    except OSError:
+                        report("加速环境尚未就绪，保留旧唱歌处理路径及原语音服务。")
+                    next_singing = now + 10
                 if (
                     tunnel is None or tunnel.poll() is not None
                 ) and now >= next_connection:
@@ -130,6 +149,7 @@ def main():
                             else None,
                             "model_configured": (ROOT / "trained-voice.json").exists(),
                             "connection_state": connection_state,
+                            "singing_pid": singing.pid if singing and singing.poll() is None else None,
                             "updated_at": time.time(),
                         }
                     ),
@@ -137,7 +157,7 @@ def main():
                 )
                 time.sleep(1)
         finally:
-            for child in (service, tunnel):
+            for child in (singing, service, tunnel):
                 if child and child.poll() is None:
                     # Windows 虚拟环境启动器会创建真正的 Python 子进程，需一起停止。
                     subprocess.run(
@@ -163,6 +183,7 @@ def main():
                         "manager_pid": None,
                         "service_pid": None,
                         "connection_pid": None,
+                        "singing_pid": None,
                         "model_configured": (ROOT / "trained-voice.json").exists(),
                         "stopped": True,
                         "updated_at": time.time(),

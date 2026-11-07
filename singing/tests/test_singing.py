@@ -3,6 +3,7 @@
 import json
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -84,6 +85,19 @@ class SingingTests(unittest.TestCase):
         (folder / "part-0.mp3").write_bytes(b"a" * 2_000_001)
         self.assertEqual(self.client.get(base + "0", headers=self.headers).status_code, 404)
 
+    def test_stalled_conversion_is_stopped_and_failure_is_saved(self):
+        process = Mock(pid=123, poll=Mock(return_value=None))
+        with patch.object(jobs.subprocess, "Popen", return_value=process):
+            self.post()
+        path = self.root / "jobs" / ("a" * 32) / "status.json"
+        path.write_text(json.dumps({"state": "converting", "seconds": 60, "started_at": time.time() - 130, "updated_at": time.time() - 125}), encoding="utf-8")
+        with patch.object(jobs.subprocess, "run") as kill:
+            result = self.client.get("/sing/jobs/" + "a" * 32, headers=self.headers).json()
+            self.assertEqual(result["state"], "error")
+            self.assertIn("超时", result["message"])
+            self.assertIn("123", kill.call_args.args[0])
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["state"], "error")
+
     def test_music_hosts_reject_private_paths_credentials_and_similar_domains(self):
         for url in ("http://127.0.0.1/a", "http://qq.com.evil.test/a", "file:///C:/data", "https://user:pass@qq.com/a", "https://qq.com:3000/a"):
             self.assertFalse(music.allowed_audio_url(url), url)
@@ -96,10 +110,11 @@ class SingingTests(unittest.TestCase):
             music.search_song("叹云兮 鞠婧祎")
 
     def test_gpu_lock_times_out_and_is_released(self):
-        with gpu_lock(timeout=0.1), self.assertRaises(TimeoutError):
-            with gpu_lock(timeout=0.1):
+        path = self.root / "gpu-test.lock"
+        with gpu_lock(timeout=0.1, lock_path=path), self.assertRaises(TimeoutError):
+            with gpu_lock(timeout=0.1, lock_path=path):
                 self.fail("不应同时进入同一个显卡锁")
-        with gpu_lock(timeout=0.1):
+        with gpu_lock(timeout=0.1, lock_path=path):
             pass
 
 

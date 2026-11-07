@@ -7,8 +7,9 @@ from pathlib import Path
 
 
 @contextmanager
-def gpu_lock(timeout=2):
-    with (Path(__file__).resolve().parent / "gpu.lock").open("a+b") as handle:
+def gpu_lock(timeout=2, lock_path=None):
+    path = Path(lock_path) if lock_path else Path(__file__).resolve().parent / "gpu.lock"
+    with path.open("a+b") as handle:
         if handle.seek(0, 2) == 0:
             handle.write(b"0")
             handle.flush()

@@ -15,6 +15,7 @@
 
 # 运行数据、素材及模型
 **/.venv/
+**/.venv-gpu/
 **/__pycache__/
 **/.ruff_cache/
 **/node_modules/
@@ -22,6 +23,10 @@
 **/plugin_data/
 **/logs/
 **/jobs/
+**/cache-index/
+**/benchmarks/
+**/backups/
+**/acceleration.json
 **/runtime-temp/
 **/model-cache/
 **/checkpoints/

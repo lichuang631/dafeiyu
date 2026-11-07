@@ -1,6 +1,6 @@
 name: astrbot_plugin_fish_singing
 display_name: 大肥鱼唱歌
 desc: 按歌名找原唱，分离人声后使用本地指定声音翻唱，保留伴奏。
-version: 1.0.0
+version: 1.0.2
 author: 本机定制
 repo: https://github.com/lichuang631/dafeiyu

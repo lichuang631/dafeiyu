@@ -6,9 +6,11 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
+from cache import store_result
 from music import MusicUnavailable, find_and_download
 
 ROOT = Path(__file__).resolve().parent
@@ -19,8 +21,9 @@ from gpu_lock import gpu_lock
 def write_status(job, state, **details):
     status = job / "status.json"
     previous = json.loads(status.read_text(encoding="utf-8")) if status.exists() else {}
-    temporary = job / "status.tmp"
-    temporary.write_text(json.dumps({**previous, **details, "state": state, "updated_at": time.time()}, ensure_ascii=False, indent=2), encoding="utf-8")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".tmp", prefix="status-", dir=job, encoding="utf-8", delete=False) as output:
+        json.dump({**previous, **details, "state": state, "updated_at": time.time()}, output, ensure_ascii=False, indent=2)
+        temporary = Path(output.name)
     temporary.replace(status)
 
 
@@ -45,20 +48,26 @@ def duration(path):
     return seconds
 
 
-def make_cover(job, reference):
+def convert_audio(job, reference, source):
+    config = ROOT / "acceleration.json"
+    if config.exists() and json.loads(config.read_text(encoding="utf-8")).get("enabled"):
+        import requests
+        token = (ROOT.parent / "local-voice/bridge-token").read_text(encoding="utf-8").strip()
+        session = requests.Session()
+        session.trust_env = False
+        try:
+            response = session.post("http://127.0.0.1:19881/process", json={"job_id": job.name}, headers={"Authorization": "Bearer " + token}, timeout=600)
+            response.raise_for_status()
+            result = response.json()
+            paths = [Path(result["converted"]), Path(result["accompaniment"])]
+            if not all(path.resolve().is_relative_to(job.resolve()) for path in paths):
+                raise ValueError("加速音频路径异常")
+            return paths
+        except requests.ConnectionError:
+            print("加速引擎暂未就绪，使用已验证的旧处理路径。", flush=True)
+        finally:
+            session.close()
     from audio_separator.separator import Separator
-
-    source = job / "original.audio"
-    write_status(job, "searching", message="正在搜索原唱与可用音源。")
-    song = find_and_download(json.loads((job / "request.json").read_text(encoding="utf-8"))["query"], source)
-    seconds = duration(source)
-    clipped = seconds > 300
-    if clipped:
-        limited = job / "limited.wav"
-        run(["ffmpeg", "-y", "-v", "error", "-i", str(source), "-t", "300", "-ar", "44100", str(limited)])
-        source = limited
-        seconds = 300
-    write_status(job, "separating", song=song, seconds=seconds, clipped=clipped, message="正在分离人声与伴奏。")
     separator = Separator(
         model_file_dir=str(ROOT / "separation-models"), output_dir=str(job / "stems"),
         output_format="WAV", sample_rate=44100,
@@ -78,6 +87,22 @@ def make_cover(job, reference):
             "--semi-tone-shift", "0", "--diffusion-steps", "30", "--fp16", "True",
         ], cwd=ROOT / "seed-vc", env=environment, timeout=600)
     converted = next((job / "converted").glob("*.wav"))
+    return converted, accompaniment
+
+
+def make_cover(job, reference):
+    source = job / "original.audio"
+    write_status(job, "searching", message="正在搜索原唱与可用音源。")
+    song = find_and_download(json.loads((job / "request.json").read_text(encoding="utf-8"))["query"], source)
+    seconds = duration(source)
+    clipped = seconds > 300
+    if clipped:
+        limited = job / "limited.wav"
+        run(["ffmpeg", "-y", "-v", "error", "-i", str(source), "-t", "300", "-ar", "44100", str(limited)])
+        source = limited
+        seconds = 300
+    write_status(job, "separating", song=song, seconds=seconds, clipped=clipped, message="正在分离人声与伴奏。")
+    converted, accompaniment = convert_audio(job, reference, source)
     if abs(duration(converted) - seconds) > max(1.0, seconds * 0.03):
         raise ValueError("换声结果时长异常，未发送不完整歌曲")
     write_status(job, "mixing", message="正在混回伴奏并分段。")
@@ -91,6 +116,7 @@ def make_cover(job, reference):
     for index in range(parts):
         run(["ffmpeg", "-y", "-v", "error", "-ss", str(index * 50), "-i", str(mixed), "-t", "50", "-ar", "44100", "-ac", "1", "-c:a", "libmp3lame", "-b:a", "128k", str(job / f"part-{index}.mp3")])
     write_status(job, "done", parts=parts, message="翻唱已完成。")
+    store_result(job, reference)
 
 
 def main():

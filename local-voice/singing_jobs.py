@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -13,6 +14,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent / "singing"
+sys.path.insert(0, str(ROOT))
+from cache import find_result
+from worker import write_status
+
 JOBS = ROOT / "jobs"
 processes = {}
 start_lock = asyncio.Lock()
@@ -21,6 +26,7 @@ start_lock = asyncio.Lock()
 class SingingRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
     request_id: str = Field(pattern="^[a-f0-9]{32}$")
+    refresh: bool = False
 
 
 def job_path(identifier):
@@ -37,9 +43,22 @@ def read_status(identifier):
     process = processes.get(identifier)
     if data["state"] not in ("done", "error") and (process is None or process.poll() is not None):
         return {**data, "state": "error", "message": "本地任务已中断，请重新点歌。"}
-    if process and process.poll() is None and time.time() - data.get("started_at", time.time()) > 900:
+    elapsed = time.time() - data.get("started_at", time.time())
+    inactive = time.time() - data.get("updated_at", data.get("started_at", time.time()))
+    duration = float(data.get("seconds", 60))
+    limit = {"queued": 60, "searching": 120, "separating": max(90, duration * 1.5), "converting": max(120, duration * 2), "mixing": 60}.get(data["state"], 900)
+    if process and process.poll() is None and (elapsed > 900 or inactive > limit):
+        config = ROOT / "acceleration.json"
+        if config.exists() and json.loads(config.read_text(encoding="utf-8")).get("enabled"):
+            import requests
+            token = (ROOT.parent / "local-voice/bridge-token").read_text(encoding="utf-8").strip()
+            try:
+                requests.post("http://127.0.0.1:19881/cancel", json={"job_id": identifier}, headers={"Authorization": "Bearer " + token}, timeout=2)
+            except requests.RequestException:
+                pass
         subprocess.run([str(Path(os.environ["WINDIR"]) / "System32/taskkill.exe"), "/PID", str(process.pid), "/T", "/F"], check=False, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        return {**data, "state": "error", "message": "本次处理超时，请换一首较短的歌。"}
+        write_status(job, "error", message="本次处理超时，已停止任务；可以稍后重试或换一首歌。")
+        return json.loads((job / "status.json").read_text(encoding="utf-8"))
     return data
 
 
@@ -56,6 +75,9 @@ def build_router(authenticate, settings):
             if old["query"] != query:
                 raise HTTPException(status_code=409, detail="任务编号已使用")
             return {"job_id": body.request_id, **read_status(body.request_id)}
+        cached = None if body.refresh else find_result(query, settings["reference_audio"], JOBS)
+        if cached:
+            return {"job_id": cached, **read_status(cached), "cache_hit": True}
         if any(p.poll() is None for p in processes.values()):
             raise HTTPException(status_code=429, detail="正在唱另一首，完成后再点歌")
         python = ROOT / ".venv/Scripts/python.exe"
