@@ -12,7 +12,7 @@
 | 黑名单插件 | https://github.com/AstrBotDevs/astrbot_plugin_blacklist | 安装与优先级修改记录 |
 | GPT-SoVITS | https://github.com/RVC-Boss/GPT-SoVITS | 调用脚本和Windows兼容补丁，保留许可说明 |
 | DeepFilterNet | https://github.com/Rikorose/DeepFilterNet | 官方0.5.6程序的调用，不分发程序或模型 |
-| Seed-VC | https://github.com/Plachtaa/seed-vc | 唱歌方案研究；实际集成状态见验收记录 |
-| audio-separator | https://github.com/nomadkaraoke/python-audio-separator | 唱歌人声分离的候选依赖 |
+| Seed-VC | https://github.com/Plachtaa/seed-vc | 实际歌声转换依赖及可选依赖延迟加载补丁 |
+| audio-separator | https://github.com/nomadkaraoke/python-audio-separator | 实际人声分离依赖，不分发模型 |
 
 用户原声录音、训练得到的声音权重、歌曲音频、表情包图库、聊天数据与第三方客户端安装包不在公开资料包中。定制代码的来源、版本与功能以各插件 metadata 及文档为准；本仓库不替第三方项目重新授权。

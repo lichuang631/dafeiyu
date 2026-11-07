@@ -25,14 +25,16 @@
 | 自动备用 | 本地离线时用百炼龙嫱；连接恢复后重新使用本地 |
 | QQ 空间 | 按需搜趣图、写三条草稿，只交给主人审核 |
 | 空友爱看 | 审核后发表并投稿；额度用完照常发普通空间 |
+| 指定声音唱歌 | `/唱歌 歌名 歌手` 自动找歌、换声、混回伴奏并分段 |
 
-本地说话服务、自动恢复和云端调用已经实测。唱歌扩展正在单独接入，是否已经可用以对应文档的验收记录为准。
+本地说话服务、自动恢复、云端调用与按歌名唱歌均已实测。[唱歌插件说明](docs/唱歌插件.md)记录音源限制、安装步骤与验收；《叹云兮》本次实际可用的是60秒公开试听，已完成换声和云端分段取回。
 
 ## 代码
 
 - `custom-plugins/astrbot_plugin_fish_qzone_drafts`：空间图文草稿、主人审核、投稿及额度回退，1.2.3。
 - `custom-plugins/astrbot_plugin_fish_hybrid_voice`：本地声音优先、云端备用，1.0.1。
 - `local-voice`：下载资源、转录校对、训练、试听、降噪及后台连接管理。
+- `custom-plugins/astrbot_plugin_fish_singing` 和 `singing`：云端点歌插件及本地分离、歌声转换、混音任务。
 - `云端部署`：原部署使用的迁移、启动、插件安装和诊断脚本。
 - `persona`：上游 MIT 许可的大肥鱼人格，保留来源声明。
 
@@ -49,6 +51,7 @@ API Key、服务器密码、SSH 私钥、QQ 登录数据、Cookie、聊天数据
 $env:QZONE_PLUGIN_DIR = 'D:\test-deps\astrbot_plugin_qzone_ultra'
 python -m unittest discover -s custom-plugins/astrbot_plugin_fish_hybrid_voice/tests -v
 python -m unittest discover -s custom-plugins/astrbot_plugin_fish_qzone_drafts/tests -v
+python -m unittest discover -s singing/tests -v
 ```
 
 测试覆盖本地/备用切换、断线恢复、超时、取消、主人审稿权限、重复发表保护、配图校验和无额度普通发表；不会向 QQ 或空间发送内容。

@@ -24,6 +24,7 @@ import soundfile as sf
 from audio_cleanup import clean_generated_audio
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import Response
+from gpu_lock import gpu_lock
 from pydantic import BaseModel, Field
 from TTS_infer_pack.TTS import TTS, TTS_Config
 
@@ -61,7 +62,7 @@ async def health(authorization: str | None = Header(default=None)):
     return {"ready": engine is not None, "model": "dafeiyu-v2ProPlus-trained"}
 
 
-def synthesize(text):
+def _synthesize(text):
     request = {
         "text": text,
         "text_lang": "zh",
@@ -103,6 +104,11 @@ def synthesize(text):
     return buffer.getvalue()
 
 
+def synthesize(text):
+    with gpu_lock(timeout=2):
+        return _synthesize(text)
+
+
 @app.post("/tts")
 async def tts(body: SpeechRequest, authorization: str | None = Header(default=None)):
     authenticate(authorization)
@@ -113,6 +119,11 @@ async def tts(body: SpeechRequest, authorization: str | None = Header(default=No
     if len(content) > 8_000_000:
         raise HTTPException(status_code=413, detail="合成音频过长")
     return Response(content, media_type="audio/wav")
+
+
+from singing_jobs import build_router
+
+app.include_router(build_router(authenticate, settings))
 
 
 if __name__ == "__main__":

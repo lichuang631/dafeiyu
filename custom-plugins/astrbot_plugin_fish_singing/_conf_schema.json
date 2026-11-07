@@ -1,0 +1,5 @@
+{
+  "owner_qq": {"type": "string", "description": "主人账号，可免点歌冷却", "default": "100000001"},
+  "owner_only": {"type": "bool", "description": "仅主人可以点歌", "default": false},
+  "cooldown_seconds": {"type": "int", "description": "普通用户两次点歌间隔秒数，一次只处理一首", "default": 300}
+}
